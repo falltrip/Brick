@@ -22,6 +22,13 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const container = canvas.parentElement;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+
     // GameEngine 콜백 정의
     const gameCallbacks: GameEngineCallbacks = {
       onScoreChange: (newScore) => setScore(newScore),
@@ -61,7 +68,7 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
     };
 
     // NewGameEngine 인스턴스 생성
-    const gameEngine = new NewGameEngine(canvas, gameCallbacks);
+    const gameEngine = new NewGameEngine(canvas, gameCallbacks, level);
     gameEngineRef.current = gameEngine;
 
     // 초기 생명, 점수, 상태 설정 (엔진에서 설정된 값을 가져옴)
@@ -78,7 +85,6 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
       }
     };
 
-    handleResize(); // 초기 사이즈 설정
     window.addEventListener('resize', handleResize);
 
     // 게임 시작 (엔진의 start는 Playing 상태로 만들고 루프 시작)

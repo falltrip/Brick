@@ -52,17 +52,18 @@ export class NewGameEngine {
 
   private callbacks: GameEngineCallbacks;
 
-  constructor(canvas: HTMLCanvasElement, callbacks: GameEngineCallbacks) {
+  constructor(canvas: HTMLCanvasElement, callbacks: GameEngineCallbacks, levelNumber: number) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
     this.inputManager = InputManager.getInstance(); // InputManager 싱글톤 인스턴스 사용
     this.callbacks = callbacks;
+    this.currentLevel = levelNumber;
 
     // ballInitialDx, ballInitialDy 설정
     this.ballInitialDx = this.ballSpeed * (Math.random() > 0.5 ? 1 : -1); // 초기 x 방향 랜덤
     this.ballInitialDy = -this.ballSpeed; // 초기 y 방향은 위로
 
-    this.initializeLevel(1); // 레벨 초기화 (패들, 공, 벽돌 생성 포함)
+    this.initializeLevel(this.currentLevel); // 레벨 초기화 (패들, 공, 벽돌 생성 포함)
   }
 
   private initializeLevel(levelNumber: number): void {
