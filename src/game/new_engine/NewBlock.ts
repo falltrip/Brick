@@ -1,4 +1,5 @@
 import { BaseEntity, EntityUpdateProps, EntityRenderProps } from './BaseEntity';
+import { PowerUpType } from './PowerUp';
 
 export enum BlockType {
   Normal = 1,
@@ -8,9 +9,10 @@ export enum BlockType {
 
 export class NewBlock extends BaseEntity {
   public points: number;
-  public health: number;
+  public health: number; // Serves as durability
   private initialHealth: number;
   public blockType: BlockType;
+  public dropsItemType: PowerUpType | null = null;
   private colors: { [key in BlockType]: string[] } = {
     [BlockType.Normal]: ['#AED9E0', '#93C6D3'], // Light Sky Blue
     [BlockType.Strong]: ['#FFDAB9', '#FFBFA0', '#FFA07A'], // Peach Puff / Light Salmon
@@ -35,6 +37,15 @@ export class NewBlock extends BaseEntity {
         break;
     }
     this.initialHealth = this.health; // Store initial health for color logic
+
+    if (this.blockType === BlockType.Strong) {
+      // Example: Make 1 out of 3 strong blocks drop a WidePaddle item
+      // This is a placeholder for potentially more sophisticated level design or random logic
+      if (Math.random() < 0.33) { // 33% chance for a strong block
+        this.dropsItemType = PowerUpType.WidePaddle;
+      }
+    }
+    // Other block types will default to null (no item drop)
   }
 
   update(props: EntityUpdateProps): void {

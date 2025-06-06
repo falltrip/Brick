@@ -42,9 +42,10 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
         } else if (newStatus === GameStatus.LevelComplete) {
           stopSound('bgMusic');
           playSound('levelComplete');
-          // 레벨 완료 처리 (예: 다음 레벨 선택 화면 또는 onGameOver 호출)
-          // For now, let's treat level complete like game over for menu display
-          onGameOver(currentScore ?? score);
+          // UI will show "Level Complete" and "Next Level" button based on gameStatus
+          // No need to call onGameOver here anymore if we have a distinct LevelComplete UI
+          // onGameOver(currentScore ?? score); // REMOVE or keep if you want LevelComplete to behave like GameOver for UI purposes
+          // For now, let's assume LevelComplete will have its own UI section
         } else if (newStatus === GameStatus.Playing) {
           playSound('bgMusic', true);
         } else if (newStatus === GameStatus.Paused) {
@@ -161,15 +162,34 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-white/70 backdrop-blur-md">
-          {(gameStatus === GameStatus.GameOver || gameStatus === GameStatus.LevelComplete) && (
-            <>
-              <h2 className="text-4xl font-bold text-red-600">
-                {gameStatus === GameStatus.GameOver ? 'Game Over' : 'Level Complete!'}
-              </h2>
+          {gameStatus === GameStatus.LevelComplete && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-white/70 backdrop-blur-md">
+              <h2 className="text-4xl font-bold text-green-600">Level Complete!</h2>
               <p className="text-2xl text-purple-700">Your Score: {score}</p>
               <div className="flex gap-4">
                 <button
-                  onClick={handleRestartGame} // Changed here
+                  onClick={handleRestartGame} // This will call engine.start()
+                  className="px-6 py-3 bg-green-500 text-white rounded-full text-lg font-semibold hover:bg-green-600 transition-colors"
+                >
+                  <RotateCcw className="inline mr-2"/> Next Level
+                </button>
+                <button
+                  onClick={handleBackClick}
+                  className="px-6 py-3 bg-pink-500 text-white rounded-full text-lg font-semibold hover:bg-pink-600 transition-colors"
+                >
+                  <Home className="inline mr-2"/> Main Menu
+                </button>
+              </div>
+            </div>
+          )}
+
+          {gameStatus === GameStatus.GameOver && ( // Keep GameOver separate
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-white/70 backdrop-blur-md">
+              <h2 className="text-4xl font-bold text-red-600">Game Over</h2>
+              <p className="text-2xl text-purple-700">Your Score: {score}</p>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleRestartGame} // This will call engine.start()
                   className="px-6 py-3 bg-blue-500 text-white rounded-full text-lg font-semibold hover:bg-blue-600 transition-colors"
                 >
                   <RotateCcw className="inline mr-2"/> Play Again
@@ -181,7 +201,7 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
                   <Home className="inline mr-2"/> Main Menu
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       )}

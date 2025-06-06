@@ -5,6 +5,7 @@ import { NewBall } from './NewBall';
 import { NewBlock, BlockType } from './NewBlock';
 import { PowerUp, PowerUpType } from './PowerUp';
 import { Particle } from './Particle';
+import { levels as levelsData } from '../levels/levels'; // Adjust path if necessary
 
 export enum GameStatus {
   Ready,    // 게임 시작 전 준비 상태
@@ -42,6 +43,7 @@ export class NewGameEngine {
   private ballInitialDy: number;
   private animationFrameId: number = 0;
   private lastTime: number = 0;
+  private currentLevel: number = 1;
 
   public status: GameStatus = GameStatus.Ready;
   private score: number = 0;
@@ -70,7 +72,7 @@ export class NewGameEngine {
     this.powerUps = [];
     this.particles = []; // 파티클 배열 초기화
     this.activePowerUps.clear();
-    this.score = 0;
+    // DO NOT RESET SCORE HERE: this.score = 0;
     this.lives = this.initialLives;
 
     // 패들 생성 (기존 로직)
@@ -89,25 +91,47 @@ export class NewGameEngine {
     // 공 생성
     this.resetBall();
 
-    // 벽돌 생성 (간단한 예시 레벨)
-    const blockRowCount = 3;
-    const blockColumnCount = 8;
-    // canvasWidth가 constructor 시점에서는 0일 수 있으므로, this.canvas.width 사용
-    const availableWidth = this.canvas.width > 0 ? this.canvas.width : 640; // 기본값 설정
-    const blockWidth = (availableWidth - 40) / blockColumnCount - 5; // 여백 고려
-    const blockHeight = 20;
+    // 벽돌 생성 (Load from levelsData)
+    const levelLayout = levelsData[levelNumber - 1]?.layout; // levelNumber is 1-based
+
+    if (!levelLayout) {
+      console.error(`Level data for level ${levelNumber} not found. Resetting to level 1.`);
+      this.currentLevel = 1; // Reset to prevent errors
+      this.setGameStatus(GameStatus.GameOver); // Or a new "GameCompleteAllLevels" status
+      return; // Stop initialization if level data is invalid
+    }
+
     const blockPadding = 5;
     const blockOffsetTop = 30;
     const blockOffsetLeft = 20;
+    // Calculate blockWidth and blockHeight based on canvas size and layout columns/rows
+    const numRows = levelLayout.length;
+    const numCols = levelLayout[0]?.length || 1; // Handle empty rows if any
 
-    for (let r = 0; r < blockRowCount; r++) {
-      for (let c = 0; c < blockColumnCount; c++) {
+    const availableWidth = this.canvas.width > 0 ? this.canvas.width : 640;
+    const totalPaddingWidth = blockPadding * (numCols - 1);
+    const totalOffsetWidth = blockOffsetLeft * 2; // Assuming offset on both sides
+    let blockWidth = (availableWidth - totalOffsetWidth - totalPaddingWidth) / numCols;
+
+    // Assuming a fixed height for now, or calculate based on available height
+    const blockHeight = 20;
+
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const blockTypeNumber = levelLayout[r][c];
+        if (blockTypeNumber === 0) continue; // 0 means no block
+
+        let type: BlockType;
+        // Mapping from levels.ts numbers to BlockType enum
+        // 1: Normal, 2: Strong, 3 and above: Unbreakable
+        switch (blockTypeNumber) {
+          case 1: type = BlockType.Normal; break;
+          case 2: type = BlockType.Strong; break;
+          default: type = BlockType.Unbreakable; break; // Numbers 3 or higher
+        }
+
         const blockX = c * (blockWidth + blockPadding) + blockOffsetLeft;
         const blockY = r * (blockHeight + blockPadding) + blockOffsetTop;
-        // 간단한 타입 분배 예시
-        let type = BlockType.Normal;
-        if (r === 0) type = BlockType.Strong; // 첫 줄은 강한 블록
-        if (r === 1 && (c === 0 || c === blockColumnCount -1)) type = BlockType.Unbreakable; // 특정 위치는 안깨지는 블록
 
         const block = new NewBlock(blockX, blockY, blockWidth, blockHeight, type);
         this.blocks.push(block);
@@ -117,7 +141,7 @@ export class NewGameEngine {
 
     // 초기 콜백 호출
     this.callbacks.onLivesChange?.(this.lives);
-    this.callbacks.onScoreChange?.(this.score);
+    this.callbacks.onScoreChange?.(this.score); // Score will be its current value
     this.setGameStatus(GameStatus.Ready);
   }
 
@@ -219,9 +243,9 @@ export class NewGameEngine {
             this.callbacks.onScoreChange?.(this.score);
             this.createBlockDestroyParticles(block); // 파티클 생성 호출
 
-            // 아이템 드랍 로직
-            if (Math.random() < this.POWER_UP_DROP_CHANCE) {
-              this.spawnPowerUp(block.x + block.width / 2, block.y + block.height / 2);
+            // New item drop logic based on block.dropsItemType
+            if (block.dropsItemType !== null) {
+              this.spawnPowerUp(block.x + block.width / 2, block.y + block.height / 2, block.dropsItemType);
             }
           }
           if (this.blocks.every(b => b.isDestroyed || b.blockType === BlockType.Unbreakable)) {
@@ -256,10 +280,10 @@ export class NewGameEngine {
     }
   }
 
-  private spawnPowerUp(x: number, y: number): void {
-    const powerUpTypes = Object.values(PowerUpType);
-    const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-    const powerUp = new PowerUp(x - 15, y, randomType); // x 좌표 중앙 정렬
+  private spawnPowerUp(x: number, y: number, type: PowerUpType): void {
+    // const powerUpTypes = Object.values(PowerUpType); // REMOVE
+    // const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)]; // REMOVE
+    const powerUp = new PowerUp(x - 15, y, type); // NEW - uses the passed 'type'
     this.powerUps.push(powerUp);
     this.addEntity(powerUp);
   }
@@ -437,24 +461,35 @@ export class NewGameEngine {
   }
 
   public start(): void {
-    if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete || this.status === GameStatus.Ready) {
-      // For GameOver, LevelComplete, or initial Ready state (e.g., from constructor)
-      if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) {
-        this.initializeLevel(1); // Resets score, lives, entities, and sets status to Ready
+    if (this.status === GameStatus.GameOver) {
+      this.currentLevel = 1;
+      this.score = 0; // Reset score only on GameOver
+      this.callbacks.onScoreChange?.(this.score); // Notify score change
+      this.initializeLevel(this.currentLevel); // Sets status to Ready
+    } else if (this.status === GameStatus.LevelComplete) {
+      this.currentLevel++;
+      if (this.currentLevel > levelsData.length) {
+        // Handle all levels completed (e.g., loop back to level 1 or show game won screen)
+        console.log("All levels completed! Restarting from level 1.");
+        this.currentLevel = 1;
+        this.score = 0; // Optionally reset score after completing all levels
+        this.callbacks.onScoreChange?.(this.score);
       }
-      // After initialization (if it happened) or if it was already Ready,
-      // set to Playing and start the loop.
-      this.setGameStatus(GameStatus.Playing);
+      this.initializeLevel(this.currentLevel); // Sets status to Ready
+    } else if (this.status === GameStatus.Ready) {
+      // This case handles initial start (from constructor) or after losing a life
+      // initializeLevel would have been called already, setting it to Ready.
+      // If it's the very first game start, currentLevel is 1.
+      // If it's after losing a life, currentLevel is the current level.
+      // No need to call initializeLevel here again unless currentLevel needs reset (handled by GameOver).
     } else if (this.status === GameStatus.Paused) {
-      this.setGameStatus(GameStatus.Playing); // Resume playing
+      // Just resume
     }
 
-    // Common logic to start or continue the game loop if now Playing
-    if (this.status === GameStatus.Playing) {
-      this.lastTime = performance.now();
-      if (!this.animationFrameId) {
-        this.gameLoop(this.lastTime);
-      }
+    this.setGameStatus(GameStatus.Playing);
+    this.lastTime = performance.now();
+    if (!this.animationFrameId) {
+      this.gameLoop(this.lastTime);
     }
   }
 
