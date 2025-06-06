@@ -80,21 +80,26 @@ export class GameEngine {
   }
 
   private updatePaddlePosition() {
-    const moveSpeed = 10; // Increased from 7
+    const moveSpeed = 10;
     const currentX = this.paddle.x;
-    
+    let newTargetX = currentX; // 현재 위치로 초기화
+
     if (this.keyState['ArrowLeft'] || this.keyState['a'] || this.keyState['A']) {
-      this.paddle.targetX = Math.max(0, currentX - moveSpeed);
+      newTargetX = Math.max(0, currentX - moveSpeed);
     }
     if (this.keyState['ArrowRight'] || this.keyState['d'] || this.keyState['D']) {
-      this.paddle.targetX = Math.min(this.canvas.width - this.paddle.width, currentX + moveSpeed);
+      newTargetX = Math.min(this.canvas.width - this.paddle.width, currentX + moveSpeed);
     }
-    
-    // 패들이 움직였을 때만 위치 업데이트
-    if (this.paddle.targetX !== currentX) {
+
+    // targetX가 실제로 변경되었는지 확인
+    if (newTargetX !== currentX) {
+      this.paddle.targetX = newTargetX;
       this.paddle.update();
+      this.lastPaddleX = this.paddle.x; // 패들이 실제로 움직였을 때만 lastPaddleX 업데이트
+    } else {
+      // 키 입력이 없거나 경계에 도달하여 움직이지 않을 때, targetX를 현재 x 위치로 설정하여 불필요한 update() 호출 방지
+      this.paddle.targetX = currentX;
     }
-    this.lastPaddleX = this.paddle.x; // Always update lastPaddleX to the current paddle position
   }
 
   private initializeLevel() {
@@ -199,7 +204,9 @@ export class GameEngine {
         
         if (this.balls.length === 0) {
           this.callbacks.onLifeLost();
-          this.paddle.x = this.lastPaddleX;
+          this.paddle.x = this.canvas.width / 2 - this.paddle.width / 2;
+          this.paddle.targetX = this.paddle.x;
+          this.lastPaddleX = this.paddle.x;
           this.resetBall();
         }
         continue;
@@ -347,7 +354,9 @@ export class GameEngine {
     this.canvas.height = height;
     
     this.paddle.y = height - 30;
-    this.paddle.x = Math.min(this.lastPaddleX, width - this.paddle.width);
+    this.paddle.x = width / 2 - this.paddle.width / 2;
+    this.paddle.targetX = this.paddle.x;
+    this.lastPaddleX = this.paddle.x;
     
     this.blocks = [];
     this.initializeLevel();
