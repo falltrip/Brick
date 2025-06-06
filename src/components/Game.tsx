@@ -82,7 +82,6 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
 
     // 게임 시작 (엔진의 start는 Playing 상태로 만들고 루프 시작)
     gameEngine.start();
-    gameEngine.setGameStatus(GameStatus.Playing);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -120,7 +119,6 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
       // If engine.start() sets to Ready, the next setGameStatus in useEffect might be too soon or out of sync.
       // For now, assume engine.start() will bring it to Ready, and then it needs to be set to Playing.
       // Let's add it here for robustness for "Play Again"
-      gameEngineRef.current?.setGameStatus(GameStatus.Playing);
     }
   };
 
