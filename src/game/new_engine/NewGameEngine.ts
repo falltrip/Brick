@@ -353,11 +353,11 @@ export class NewGameEngine {
 
   private update(deltaTime: number): void {
     if (this.status !== GameStatus.Playing) {
-        if (this.status === GameStatus.Ready && this.inputManager.isKeyPressed('Space')) { // 스페이스바로 시작 (spacebar는 code 임)
-            this.setGameStatus(GameStatus.Playing);
-        } else {
-             return;
-        }
+        // If not playing (e.g., Paused, GameOver, etc., or even Ready if somehow start() wasn't effective),
+        // do not proceed with game logic updates.
+        // The gameLoop itself should also prevent update/render if not Playing/Ready,
+        // but this is an additional safeguard.
+        return;
     }
 
     const updateProps: EntityUpdateProps = { deltaTime };
@@ -437,21 +437,20 @@ export class NewGameEngine {
   }
 
   public start(): void {
-    if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) {
-      this.initializeLevel(1); // This sets status to Ready
-      // Game loop will be started below
+    if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete || this.status === GameStatus.Ready) {
+      // For GameOver, LevelComplete, or initial Ready state (e.g., from constructor)
+      if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) {
+        this.initializeLevel(1); // Resets score, lives, entities, and sets status to Ready
+      }
+      // After initialization (if it happened) or if it was already Ready,
+      // set to Playing and start the loop.
+      this.setGameStatus(GameStatus.Playing);
     } else if (this.status === GameStatus.Paused) {
       this.setGameStatus(GameStatus.Playing); // Resume playing
-      // Game loop will be started/continued below
-    } else if (this.status === GameStatus.Ready) {
-      // Status is already Ready. Game loop will be started below.
-      // update() will handle transition to Playing.
     }
 
-    // Common logic to start or continue the game loop
-    // This should run if the status is Ready (initial, after game over/level complete),
-    // or if it was Paused and is now Playing.
-    if (this.status === GameStatus.Ready || this.status === GameStatus.Playing) {
+    // Common logic to start or continue the game loop if now Playing
+    if (this.status === GameStatus.Playing) {
       this.lastTime = performance.now();
       if (!this.animationFrameId) {
         this.gameLoop(this.lastTime);
