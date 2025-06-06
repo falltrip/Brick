@@ -81,7 +81,8 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
     window.addEventListener('resize', handleResize);
 
     // 게임 시작 (엔진의 start는 Playing 상태로 만들고 루프 시작)
-    // gameEngine.start(); // 자동 시작 대신 UI 버튼으로 시작하도록 변경 고려
+    gameEngine.start();
+    gameEngine.setGameStatus(GameStatus.Playing);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -111,11 +112,15 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
     onBackToMenu();
   };
 
-  const handleStartGame = () => {
-    if (gameEngineRef.current?.status === GameStatus.Ready ||
-        gameEngineRef.current?.status === GameStatus.GameOver ||
+  const handleRestartGame = () => { // Renamed
+    if (gameEngineRef.current?.status === GameStatus.GameOver ||
         gameEngineRef.current?.status === GameStatus.LevelComplete) {
       gameEngineRef.current?.start();
+      // Ensure engine's start() handles setting to Playing or Game.tsx will after this.
+      // If engine.start() sets to Ready, the next setGameStatus in useEffect might be too soon or out of sync.
+      // For now, assume engine.start() will bring it to Ready, and then it needs to be set to Playing.
+      // Let's add it here for robustness for "Play Again"
+      gameEngineRef.current?.setGameStatus(GameStatus.Playing);
     }
   };
 
@@ -158,17 +163,6 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-white/70 backdrop-blur-md">
-          {gameStatus === GameStatus.Ready && (
-            <>
-              <h2 className="text-4xl font-bold text-purple-800">Level {level}</h2>
-              <button
-                onClick={handleStartGame}
-                className="px-8 py-4 bg-green-500 text-white rounded-full text-xl font-semibold hover:bg-green-600 transition-colors shadow-lg"
-              >
-                Start Game
-              </button>
-            </>
-          )}
           {(gameStatus === GameStatus.GameOver || gameStatus === GameStatus.LevelComplete) && (
             <>
               <h2 className="text-4xl font-bold text-red-600">
@@ -177,7 +171,7 @@ const Game: React.FC<GameProps> = ({ level, onGameOver, onBackToMenu }) => {
               <p className="text-2xl text-purple-700">Your Score: {score}</p>
               <div className="flex gap-4">
                 <button
-                  onClick={handleStartGame} // Restart (사실상 같은 레벨 또는 다음 레벨)
+                  onClick={handleRestartGame} // Changed here
                   className="px-6 py-3 bg-blue-500 text-white rounded-full text-lg font-semibold hover:bg-blue-600 transition-colors"
                 >
                   <RotateCcw className="inline mr-2"/> Play Again
