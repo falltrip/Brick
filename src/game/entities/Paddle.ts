@@ -16,7 +16,7 @@ export class Paddle extends Entity {
   update() {
     const diff = this.targetX - this.x;
     if (Math.abs(diff) > 0.1) {
-      this.x += diff * this.speed;
+      this.x += diff * 0.3; // Changed from 0.5
     } else {
       this.x = this.targetX;
     }
