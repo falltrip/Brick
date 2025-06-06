@@ -353,7 +353,7 @@ export class NewGameEngine {
 
   private update(deltaTime: number): void {
     if (this.status !== GameStatus.Playing) {
-        if (this.status === GameStatus.Ready && (this.inputManager.isKeyPressed(' ') || this.inputManager.isKeyPressed('spacebar'))) { // 스페이스바로 시작 (spacebar는 code 임)
+        if (this.status === GameStatus.Ready && this.inputManager.isKeyPressed('Space')) { // 스페이스바로 시작 (spacebar는 code 임)
             this.setGameStatus(GameStatus.Playing);
         } else {
              return;
