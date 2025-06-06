@@ -1,0 +1,35 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # 푸시할 브랜치 이름 (예: master로 변경 가능)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: # 이 부분을 추가합니다.
+      contents: write # gh-pages 브랜치에 푸시할 수 있도록 쓰기 권한 부여
+      pages: write # GitHub Pages 배포를 위한 추가 권한 (선택적이지만 안전하게 추가)
+      id-token: write # OpenID Connect 사용 시 필요 (선택적이지만 안전하게 추가)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18" # 사용하는 Node.js 버전
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
