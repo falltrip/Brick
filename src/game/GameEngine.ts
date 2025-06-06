@@ -80,7 +80,7 @@ export class GameEngine {
   }
 
   private updatePaddlePosition() {
-    const moveSpeed = 7;
+    const moveSpeed = 10; // Increased from 7
     const currentX = this.paddle.x;
     
     if (this.keyState['ArrowLeft'] || this.keyState['a'] || this.keyState['A']) {
@@ -92,9 +92,9 @@ export class GameEngine {
     
     // 패들이 움직였을 때만 위치 업데이트
     if (this.paddle.targetX !== currentX) {
-      this.lastPaddleX = this.paddle.targetX;
       this.paddle.update();
     }
+    this.lastPaddleX = this.paddle.x; // Always update lastPaddleX to the current paddle position
   }
 
   private initializeLevel() {
