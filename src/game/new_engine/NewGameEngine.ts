@@ -437,14 +437,21 @@ export class NewGameEngine {
   }
 
   public start(): void {
-    // if (this.status === GameStatus.Ready || this.status === GameStatus.Paused) { // 기존 조건
-    if (this.status === GameStatus.Ready || this.status === GameStatus.Paused || this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) { // 게임오버나 레벨완료 후에도 재시작 가능하도록
-      if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) {
-        // initializeLevel에서 score, lives는 이미 초기화되고 콜백도 호출됨
-        this.initializeLevel(1); // 또는 현재 레벨, 다음 레벨 등 재설정
-      }
-      // setGameStatus는 Playing으로 변경하고, Playing에 대한 콜백은 setGameStatus 내부에서 처리됨
-      this.setGameStatus(GameStatus.Playing);
+    if (this.status === GameStatus.GameOver || this.status === GameStatus.LevelComplete) {
+      this.initializeLevel(1); // This sets status to Ready
+      // Game loop will be started below
+    } else if (this.status === GameStatus.Paused) {
+      this.setGameStatus(GameStatus.Playing); // Resume playing
+      // Game loop will be started/continued below
+    } else if (this.status === GameStatus.Ready) {
+      // Status is already Ready. Game loop will be started below.
+      // update() will handle transition to Playing.
+    }
+
+    // Common logic to start or continue the game loop
+    // This should run if the status is Ready (initial, after game over/level complete),
+    // or if it was Paused and is now Playing.
+    if (this.status === GameStatus.Ready || this.status === GameStatus.Playing) {
       this.lastTime = performance.now();
       if (!this.animationFrameId) {
         this.gameLoop(this.lastTime);
